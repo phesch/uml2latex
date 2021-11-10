@@ -1,0 +1,13 @@
+EtherKitten 900
+Reader 900
+BusReader 900
+MessageQueues 900
+Logger 900
+ErrorStatistician 900
+ErrorView 900
+InterfaceChooser 900
+RegisterChooser 1000
+WatchList 900
+SlaveTree 900
+Node 1000
+Edge 1000
