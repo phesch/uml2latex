@@ -1,9 +1,9 @@
 # coding=utf-8
 import xml.etree.ElementTree as ET
-import shutil
 import os
 import sys
 import glob
+import tempfile
 from functions import *
 
 file_header = """% Diese Datei wurde automatisch generiert.
@@ -50,9 +50,8 @@ for file in glob.glob("./template_override/*"):
     with open(file, "r") as f:
         override[file.split("/")[-1]] = f.read()
 
-shutil.copy("UML.xmi", "tmp_file.xmi")
 ET.register_namespace("UML", umlSchema[1:-1])
-tree = ET.parse("tmp_file.xmi")
+tree = ET.parse("UML.xmi")
 
 model_view = tree.getroot()[1][0][0][3]
 namespace_root = model_view.find(umlSchema + "Namespace.ownedElement")
@@ -133,18 +132,19 @@ if len(sys.argv) >= 2 and sys.argv[1] == "--no-pics":
     make_pics = False
 if make_pics:
     # Let Umbrello generate the images for us
-    tree.write("tmp_file.xmi", xml_declaration=True, encoding="utf-8")
+    tmpfile, tmppath = tempfile.mkstemp(prefix="uml")
+    tree.write(tmpfile, xml_declaration=True, encoding="utf-8")
     try:
         os.mkdir("outImages")
     except:
         pass
-    os.system("umbrello5 --directory outImages --export svg tmp_file.xmi")
+    os.system("umbrello5 --directory outImages --export svg {}".format(tmppath))
 
     for file in glob.glob("./outImages/*.svg"):
         print(file)
         os.system("rsvg-convert \"" + file + "\" -f pdf > \"" + space_ul(file[:file.find("svg", -1) - 2]) + "pdf\"")
         os.remove(file)
-os.remove("tmp_file.xmi")
+    os.remove(tmppath);
 
 no_ref = []
 if "NOREF" in override:
