@@ -1,5 +1,6 @@
 # coding=utf-8
 import xml.etree.ElementTree as ET
+import argparse
 import os
 import sys
 import glob
@@ -45,8 +46,25 @@ default_templates = {
     ],
 }
 
+def read_args():
+    parser = argparse.ArgumentParser(description="Create LaTeX documentation from an Umbrello file")
+    parser.add_argument("file", metavar="FILE", help="The Umbrello UML file to read")
+    parser.add_argument("-n", "--no-pics", default=False, action="store_true", help="Do not generate class diagram images")
+    parser.add_argument("-o", "--output", default=None, help="Output to the given file instead of stdout")
+    parser.add_argument("-t", "--templates", default="template_override", help="The directory to read template override files from ('template_override' by default)")
+    parser.add_argument("-i", "--outImages", default="outImages", help="The directory to place the produced images in ('outImages' by default)")
+    return parser.parse_args()
+
+def get_output(file):
+    if file is None:
+        return sys.stdout
+    else:
+        return open(file, "w")
+
+args = read_args()
+
 override = {}
-for file in glob.glob("./template_override/*"):
+for file in glob.glob("{}/*".format(args.templates)):
     with open(file, "r") as f:
         override[file.split("/")[-1]] = f.read()
 
@@ -127,20 +145,17 @@ for association in namespace_root.findall(umlSchema + "Association"):
                 end.attrib["multiplicity"] if "multiplicity" in end.attrib else None,
                 end.attrib["comment"] if "comment" in end.attrib else None))
 
-make_pics = True
-if len(sys.argv) >= 2 and sys.argv[1] == "--no-pics":
-    make_pics = False
-if make_pics:
+if not args.no_pics:
     # Let Umbrello generate the images for us
     tmpfile, tmppath = tempfile.mkstemp(prefix="uml")
     tree.write(tmpfile, xml_declaration=True, encoding="utf-8")
     try:
-        os.mkdir("outImages")
+        os.mkdir(args.outImages)
     except:
         pass
-    os.system("umbrello5 --directory outImages --export svg {}".format(tmppath))
+    os.system("umbrello5 --directory {} --export svg {}".format(args.outImages, tmppath))
 
-    for file in glob.glob("./outImages/*.svg"):
+    for file in glob.glob("{}/*.svg".format(args.outImages)):
         print(file)
         os.system("rsvg-convert \"" + file + "\" -f pdf > \"" + space_ul(file[:file.find("svg", -1) - 2]) + "pdf\"")
         os.remove(file)
@@ -172,7 +187,7 @@ for i, (package, classes) in enumerate(sorted_package_list):
             override[order_name], lambda x, name: x.name == name))
 
 # Generate templates for LaTeX
-with open("templates.tex", "w") as f:
+with get_output(args.output) as f:
     f.write(file_header)
     f.write(format_template(default_root_template, override, "ROOT",
         default_templates, sorted_package_list, sorted_manual_diagram_list, sorted_sequence_diagram_list,
