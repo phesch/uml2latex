@@ -16,19 +16,6 @@ class ClassType(Enum):
 
 class Class:
     ty = ElementType.CLASS
-    class_type = None
-    name = ""
-    package = "default"
-    xmiId = ""
-    operations = []
-    attributes = []
-    abstraction = None
-    children = []
-    template = None
-    docs = None
-    dependencies = []
-    associations = []
-    approx_height = 0
 
     def __init__(self, class_type, name, package, xmiId, operations, attributes, abstraction, template, docs, approx_height):
         self.class_type = class_type
@@ -47,9 +34,6 @@ class Class:
 
 class DataType:
     ty = ElementType.DATATYPE
-    name = ""
-    xmiId = ""
-    docs = None
 
     def __init__(self, name, xmiId, docs):
         self.name = name
@@ -58,10 +42,6 @@ class DataType:
 
 class Template:
     ty = ElementType.TEMPLATE
-    name = ""
-    xmiId = ""
-    bound = None
-    docs = None
 
     def __init__(self, name, xmiId, bound, docs):
         self.name = name
@@ -71,8 +51,6 @@ class Template:
 
 class Dependency:
     ty = ElementType.DEPENDENCY
-    target = ""
-    docs = None
 
     def __init__(self, target, docs):
         self.target = target
@@ -80,10 +58,6 @@ class Dependency:
 
 class Association:
     ty = ElementType.ASSOCIATION
-    name = ""
-    target = ""
-    multiplicity = None
-    docs = None
 
     def __init__(self, name, target, multiplicity, docs):
         self.name = name

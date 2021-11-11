@@ -161,12 +161,10 @@ def make_diagram_description(diagram):
 
 def make_module_list(default_templates, packages, diagrams, sequence_diagrams, element_dict, override, no_ref):
     #text = "\\section{Architektur}\n\t\\label{Architektur}\n"
-    text = ""
-    if "ARCHITECTURE_DESC" in override:
-        text += override["ARCHITECTURE_DESC"]
+    text = override.architecture_desc
     for package, classes in packages:
-        text += format_template(default_templates["modules"], override,
-            package.attrib["name"] + "_listing", package, classes, diagrams)
+        text += format_template(default_templates["modules"],
+                get(override.module_listing, package.attrib["name"]), package, classes, diagrams)
     return text
 
 def make_manual_diagrams(default_templates, packages, diagrams, sequence_diagrams, element_dict, override, no_ref):
@@ -175,25 +173,24 @@ def make_manual_diagrams(default_templates, packages, diagrams, sequence_diagram
     text = "\\section{Klassendiagramme}\n\t\\label{Klassendiagramme}\n"
     for diagram in diagrams:
         if diagram.attrib["documentation"] == "":
-            text += format_template(default_templates["manual_diagrams_no_desc"], override,
-                diagram.attrib["name"], diagram)
+            text += format_template(default_templates["manual_diagrams_no_desc"],
+                    get(override.diagrams, diagram.attrib["name"]), diagram)
         else:
-            text += format_template(default_templates["manual_diagrams"], override,
-                diagram.attrib["name"], diagram)
+            text += format_template(default_templates["manual_diagrams"],
+                    get(override.diagrams, diagram.attrib["name"]), diagram)
     text += "\\newpage\n"
     return text
 
 def make_class_descriptions(default_templates, packages, diagrams, sequence_diagrams, element_dict, override, no_ref):
     text = "\\section{Klassenbeschreibungen}\n\t\\label{Klassenbeschreibungen}\n"
-    if "CLASSES_DESC" in override:
-        text += override["CLASSES_DESC"]
+    text += override.classes_desc
     for package, classes in packages:
         text += """\t\\subsection{{{0}}}
 		\\label{{{0}}}""".format(package.attrib["name"])
         for cl in classes:
             text += "%{0} template\n".format(cl.name)
-            text += format_template(default_templates["class_descriptions"], override,
-                cl.name, cl, element_dict, no_ref)
+            text += format_template(default_templates["class_descriptions"],
+                    get(override.classes, cl.name), cl, element_dict, no_ref)
         text += "\t\\newpage\n"
     return text
 
@@ -201,26 +198,25 @@ def make_sequence_diagrams(default_templates, packages, diagrams, sequence_diagr
     if len(sequence_diagrams) == 0:
         return ""
     text = "\\section{Abläufe}\n\t\\label{Abläufe}\n"
-    if "SEQUENCE_DESC" in override:
-        text += override["SEQUENCE_DESC"]
+    text += override.sequence_desc
     for diagram in sequence_diagrams:
         if diagram.attrib["documentation"] == "":
-            text += format_template(default_templates["manual_diagrams_no_desc"], override,
-                diagram.attrib["name"], diagram)
+            text += format_template(default_templates["manual_diagrams_no_desc"],
+                    get(override.diagrams, diagram.attrib["name"]), diagram)
         else:
-            text += format_template(default_templates["manual_diagrams"], override,
-                diagram.attrib["name"], diagram)
+            text += format_template(default_templates["manual_diagrams"],
+                    get(override.diagrams, diagram.attrib["name"]), diagram)
     return text
 
-def format_template(default_template, override, override_key, *args):
+def format_template(default_template, override, *args):
     segments = {"%FULL": ""}
     for entry, function in default_template:
         segments[entry] = function(*args)
         segments["%FULL"] += segments[entry]
 
     text = segments["%FULL"]
-    if override_key in override:
-        text = override[override_key]
+    if len(override) > 0:
+        text = override
         for segment, value in segments.items():
             text = text.replace(segment + "\n", value)
     return text
@@ -236,6 +232,12 @@ def ref(element, no_ref):
         else:
             return "{0}<{1}>".format(match.group(1), match.group(2))
 
+def get(dictionary, key):
+    if key in dictionary:
+        return dictionary[key]
+    else:
+        return ""
+
 def doc(docs, name):
     return docs if docs is not None else "XXX Beschreibung von " + name + "."
 
@@ -243,9 +245,10 @@ def attrdoc(attribs, key, name):
     return attribs[key] if key in attribs else "XXX Beschreibung von " + name + "."
 
 def sort_by_order(collection, order, func):
-    sort_order = order.splitlines(keepends=False)
+    if not order:
+        return collection
     sorted_list = []
-    for name in sort_order:
+    for name in order:
         nxt = next((x for x in collection if func(x, name)), None)
         if nxt is not None:
             sorted_list.append(nxt)

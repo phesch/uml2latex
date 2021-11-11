@@ -11,6 +11,7 @@ from uml2latex.utils import *
 from uml2latex.parse import UMLData
 from uml2latex.data import *
 from uml2latex.diagrams import make_single_class_diagram
+from uml2latex.override import Override
 
 file_header = """% Diese Datei wurde automatisch generiert.
 % Sie zu bearbeiten, ist dementsprechend sinnlos.
@@ -69,24 +70,16 @@ def get_output(file):
 def main():
     args = read_args()
 
-    override = {}
-    for file in glob.glob("{}/*".format(args.templates)):
-        with open(file, "r") as f:
-            override[file.split("/")[-1]] = f.read()
-
     umlData = UMLData.parse_uml(args.file)
+
+    override = Override(args.templates)
 
     # Make a new extension element for the single diagrams
     ext = ET.SubElement(umlData.tree.getroot()[1][0][0][4], "XMI.extension", {"xmi.extender": "umbrello"})
     single_diagram_list = ET.SubElement(ext, "diagrams")
 
-    custom_width_lines = []
-    if "CUSTOM_WIDTH" in override:
-        custom_width_lines = override["CUSTOM_WIDTH"].split("\n")
-    custom_width = dict([tuple(s.split(" ")) for s in custom_width_lines[:-1]])
-
     for cl in {i:el for (i, el) in umlData.elements.items() if el.ty == ElementType.CLASS}.values():
-        make_single_class_diagram(single_diagram_list, cl, custom_width)
+        make_single_class_diagram(single_diagram_list, cl, override.custom_width)
 
     if not args.no_pics:
         # Let Umbrello generate the images for us
@@ -104,34 +97,24 @@ def main():
             os.remove(file)
         os.remove(tmppath);
 
-    no_ref = []
-    if "NOREF" in override:
-        no_ref = override["NOREF"].split("\n")
+    sorted_manual_diagram_list = sort_by_order(umlData.class_diagram_list,
+            override.diagram_order, lambda x, name: x.attrib["name"] == name)
 
-    sorted_manual_diagram_list = umlData.class_diagram_list
-    if "DIAGRAM_ORDER" in override:
-        sorted_manual_diagram_list = sort_by_order(manual_diagram_list,
-                override["DIAGRAM_ORDER"], lambda x, name: x.attrib["name"] == name)
-
-    sorted_sequence_diagram_list = umlData.sequence_diagram_list
-    if "SEQUENCE_DIAGRAM_ORDER" in override:
-        sorted_sequence_diagram_list = sort_by_order(sequence_diagram_list,
-                override["SEQUENCE_DIAGRAM_ORDER"], lambda x, name: x.attrib["name"] == name)
+    sorted_sequence_diagram_list = sort_by_order(umlData.sequence_diagram_list,
+            override.sequence_diagram_order, lambda x, name: x.attrib["name"] == name)
 
     sorted_package_list = list(umlData.packages.items())
-    if "MODULE_ORDER" in override:
-        sorted_package_list = sort_by_order(list(umlData.packages.items()),
-            override["MODULE_ORDER"], lambda x, name: x[0].attrib["name"] == name)
+    sorted_package_list = sort_by_order(list(umlData.packages.items()),
+            override.module_list_order, lambda x, name: x[0].attrib["name"] == name)
 
     for i, (package, classes) in enumerate(sorted_package_list):
-        order_name = package.attrib["name"] + "_order"
-        if order_name in override:
+        if package.attrib["name"] in override.module_order:
             sorted_package_list[i] = (package, sort_by_order(classes,
-                override[order_name], lambda x, name: x.name == name))
+                override.module_order[package.attrib["name"]], lambda x, name: x.name == name))
 
     # Generate templates for LaTeX
     with get_output(args.output) as f:
         f.write(file_header)
-        f.write(format_template(default_root_template, override, "ROOT",
+        f.write(format_template(default_root_template, override.root,
             default_templates, sorted_package_list, sorted_manual_diagram_list, sorted_sequence_diagram_list,
-            umlData.elements, override, no_ref))
+            umlData.elements, override, override.noref))
