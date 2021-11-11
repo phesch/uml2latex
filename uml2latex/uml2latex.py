@@ -1,15 +1,14 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-import xml.etree.ElementTree as ET
 import argparse
 import os
 import sys
 import glob
 import tempfile
+import subprocess
 
-from uml2latex.utils import *
+from uml2latex.utils import space_ul
 from uml2latex.parse import UMLData
-from uml2latex.data import *
 from uml2latex.diagrams import make_all_single_class_diagrams
 from uml2latex.override import Override
 from uml2latex.tex.generate import generate_latex
@@ -33,24 +32,22 @@ def main():
     args = read_args()
 
     umlData = UMLData.parse_uml(args.file)
-
     override = Override(args.templates)
-
     make_all_single_class_diagrams(umlData.tree, umlData.elements, override.custom_width)
 
     if not args.no_pics:
-        # Let Umbrello generate the images for us
         tmpfile, tmppath = tempfile.mkstemp(prefix="uml")
         umlData.tree.write(tmpfile, xml_declaration=True, encoding="utf-8")
         try:
             os.mkdir(args.outImages)
         except:
             pass
-        os.system("umbrello5 --directory {} --export svg {}".format(args.outImages, tmppath))
+        subprocess.run(["umbrello5", "--directory", args.outImages, "--export", "svg", tmppath],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         for file in glob.glob("{}/*.svg".format(args.outImages)):
-            print(file)
-            os.system("rsvg-convert \"" + file + "\" -f pdf > \"" + space_ul(file[:file.find("svg", -1) - 2]) + "pdf\"")
+            subprocess.run(("rsvg-convert \"" + file + "\" -f pdf > \"" +
+                space_ul(file[:file.find("svg", -1) - 2]) + "pdf\""), shell=True)
             os.remove(file)
         os.remove(tmppath);
 
