@@ -3,7 +3,8 @@
 import xml.etree.ElementTree as ET
 import re
 
-umlSchema = "{http://schema.omg.org/spec/UML/1.4}"
+from uml2latex.data import *
+
 beginItem = """\t\t\t\\paragraph{{{0}}}
 			\\begin{{itemize}}[label={{}}]\n"""
 endItem = """\t\t\t\\end{itemize}\n"""
@@ -17,205 +18,6 @@ asItem = """\t\t\t\t\\item {{
 						\\texttt{{{0}}}\\\\
 				}}
 				{1}\n"""
-# Template for diagram XML element
-diagramTemplate = {
-        "usefillcolor": "1",
-        "showpackage": "1",
-        "type": "1",
-        "linewidth": "0",
-        "textcolor": "#000000",
-        "snapcsgrid": "0",
-        "name": "Diagram_",
-        "documentation": "",
-        "canvaswidth": "500",
-        "linecolor": "#ff0000",
-        "snapx": "25",
-        "snapy": "25",
-        "canvasheight": "500",
-        "snapgrid": "0",
-        "showatts": "1",
-        "showscope": "1",
-        "showstereotype": "1",
-        "showopsig": "1",
-        "isopen": "1",
-        "fillcolor": "#ffffc0",
-        "showops": "1",
-        "backgroundcolor": "#ffffff",
-        "showpubliconly": "0",
-        "zoom": "100",
-        "showattribassocs": "1",
-        "showattsig": "1",
-        "griddotcolor": "#f7f7f7",
-        "font": "Noto Sans Mono,9,-1,5,50,0,0,0,0,0,Regular",
-        "localid": "-1",
-        "xmi.id": "diag_",
-        "showgrid": "0"
-        }
-
-# Template for class / interface / enum XML element
-classTemplate = {
-        "usefillcolor": "1",
-        "usesdiagramfillcolor": "0",
-        "showoperations": "1",
-        "showpackage": "1",
-        "usesdiagramusefillcolor": "0",
-        "linewidth": "1",
-        "showopsigs": "601",
-        "textcolor": "#000000",
-        "x": "-178",
-        "y": "-178",
-        "height": -1,
-        "linecolor": "#ff0000",
-        "autoresize": "1",
-        "width": "700",
-        "showscope": "1",
-        "showstereotype": "1",
-        "fillcolor": "#ffffc0",
-        "showattributes": "",
-        "showpubliconly": "0",
-        "font": "Noto Sans Mono,9,-1,5,50,0,0,0,0,0,Regular",
-        "isinstance": "0",
-        "localid": "uHVRIOTyOW7Yf",
-        "showattsigs": "601",
-        "xmi.id": ""
-        }
-
-class Class:
-    ty = "Class"
-    name = ""
-    package = "default"
-    xmiId = ""
-    operations = []
-    attributes = []
-    abstraction = None
-    children = []
-    template = None
-    docs = None
-    dependencies = []
-    associations = []
-
-    def __init__(self, name, package, xmiId, operations, attributes, abstraction, template, docs):
-        self.name = name
-        self.package = package
-        self.xmiId = xmiId
-        self.operations = operations
-        self.attributes = attributes
-        self.abstraction = abstraction
-        self.children = list()
-        self.template = template
-        self.docs = docs
-        self.dependencies = list()
-        self.associations = list()
-
-class DataType:
-    ty = "DataType"
-    name = ""
-    xmiId = ""
-    docs = None
-
-    def __init__(self, name, xmiId, docs):
-        self.name = name
-        self.xmiId = xmiId
-        self.docs = docs
-
-class Template:
-    ty = "Template"
-    name = ""
-    xmiId = ""
-    bound = None
-    docs = None
-
-    def __init__(self, name, xmiId, bound, docs):
-        self.name = name
-        self.xmiId = xmiId
-        self.bound = bound
-        self.docs = docs
-
-class Dependency:
-    ty = "Dependency"
-    target = ""
-    docs = None
-
-    def __init__(self, target, docs):
-        self.target = target
-        self.docs = docs
-
-class Association:
-    ty = "Association"
-    name = ""
-    target = ""
-    multiplicity = None
-    docs = None
-
-    def __init__(self, name, target, multiplicity, docs):
-        self.name = name
-        self.target = target
-        self.multiplicity = multiplicity
-        self.docs = docs
-
-def make_class_diagram(parent, cl, custom_width):
-    diagAttrs = dict(diagramTemplate)
-    diagAttrs["name"] += cl.attrib["name"]
-    diagAttrs["xmi.id"] += cl.attrib["name"]
-    diagram = ET.SubElement(parent, "diagram", dict(diagAttrs))
-    height = approximate_class_height(cl)
-    widgets = ET.SubElement(diagram, "widgets")
-
-    # Umbrello complains if we don't set the tag correctly
-    tag = "classwidget" if "Class" in cl.tag else ("interfacewidget" if "Interface" in cl.tag else "enumwidget")
-
-    classAttrs = dict(classTemplate)
-    classAttrs["height"] = str(height)
-    if cl.attrib["name"] in custom_width:
-        classAttrs["width"] = custom_width[cl.attrib["name"]]
-    classAttrs["showattributes"] = "1" if tag == "classwidget" else "0"
-    classAttrs["xmi.id"] = cl.attrib["xmi.id"]
-    classwidget = ET.SubElement(widgets, tag, classAttrs)
-    
-    # These also seem to be necessary
-    messages = ET.SubElement(diagram, "messages")
-    associations = ET.SubElement(diagram, "associations")
-
-def approximate_class_height(cl):
-    height = 60
-    classifier = cl.find(umlSchema + "Classifier.feature")
-    if classifier is not None:
-        for el in classifier:
-            height += 15
-    return height
-
-def get_properties(cl, element_dict):
-    operations = []
-    attributes = []
-    classifier = cl.find(umlSchema + "Classifier.feature")
-    if classifier is not None:
-        operations = classifier.findall(umlSchema + "Operation")
-        attributes = classifier.findall(umlSchema + "Attribute")
-    model_element = cl.find(umlSchema + "ModelElement.templateParameter")
-    if model_element is not None:
-        att = model_element[0].attrib
-        element_dict[att["xmi.id"]] = Template(escape(att["name"]),
-                att["xmi.id"],
-                att["type"] if "type" in att else None,
-                att["comment"] if "comment" in att else None)
-        return (operations, attributes, att["xmi.id"])
-    return (operations, attributes, None)
-
-def parse_classes(diagram_list, class_list, package, custom_width):
-    element_dict = {}
-    for cl in class_list:
-        make_class_diagram(diagram_list, cl, custom_width)
-        (operations, attributes, template) = get_properties(cl, element_dict)
-        element_dict[cl.attrib["xmi.id"]] = Class(
-            escape(cl.attrib["name"]),
-            package,
-            cl.attrib["xmi.id"],
-            operations,
-            attributes,
-            None,
-            template,
-            cl.attrib["comment"] if "comment" in cl.attrib else None)
-    return element_dict
 
 def make_class_header(cl, element_dict, no_ref):
     return """\t\t\\subsubsection{{{0}}}
@@ -424,7 +226,7 @@ def format_template(default_template, override, override_key, *args):
     return text
 
 def ref(element, no_ref):
-    if element.ty == "Class" and element.package != "std" and element.name not in no_ref:
+    if element.ty == ElementType.CLASS and element.package != "std" and element.name not in no_ref:
         return "\\nameref{" + element.name + "}"
     else:
         # Match template classes with type parameter, both optionally prefixed by package::
