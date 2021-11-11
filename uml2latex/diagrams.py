@@ -89,3 +89,11 @@ def make_single_class_diagram(parent, cl, custom_width):
     # These also seem to be necessary
     messages = ET.SubElement(diagram, "messages")
     associations = ET.SubElement(diagram, "associations")
+
+def make_all_single_class_diagrams(tree, elements, custom_widths):
+    # Make a new extension element for the single diagrams
+    ext = ET.SubElement(tree.getroot()[1][0][0][4], "XMI.extension", {"xmi.extender": "umbrello"})
+    single_diagram_list = ET.SubElement(ext, "diagrams")
+
+    for cl in {i:el for (i, el) in elements.items() if el.ty == ElementType.CLASS}.values():
+        make_single_class_diagram(single_diagram_list, cl, custom_widths)
