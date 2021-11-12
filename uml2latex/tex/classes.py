@@ -1,26 +1,28 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
+"""Generates LaTeX class descriptions."""
+
 import re
 
 from uml2latex.tex.common import *
 from uml2latex.utils import escape
 from uml2latex.data import ElementType
 
-def make_class_header(clinfo):
+def _make_class_header(clinfo):
     return """\t\t\\subsubsection{{{0}}}
 			\\label{{{0}}}{1}\n""".format(clinfo.cl.name,
         "\n\t\t\t\\textbf{erbt von " + clinfo.ref(clinfo.cl.abstraction) + "}" \
             if clinfo.cl.abstraction is not None else "")
 
-def make_class_single_diagram(clinfo):
+def _make_class_single_diagram(clinfo):
     return """\t\t\t\\begin{{center}}
 				\\includegraphics[width=\\textwidth]{{{1}/Diagram_{0}.pdf}}
 			\\end{{center}}\n""".format(clinfo.cl.name, clinfo.image_dir)
 
-def make_class_description(clinfo):
+def _make_class_description(clinfo):
     return """\t\t\t{0}\n""".format(doc(clinfo.cl.docs, clinfo.cl.name))
 
-def make_class_template_list(clinfo):
+def _make_class_template_list(clinfo):
     if clinfo.cl.template is None:
         return ""
     template = clinfo.elements[clinfo.cl.template]
@@ -30,7 +32,7 @@ def make_class_template_list(clinfo):
     text += endItem
     return text
 
-def make_class_operations_list(clinfo):
+def _make_class_operations_list(clinfo):
     if not clinfo.cl.operations:
         return ""
     text = beginItem.format("Operationen")
@@ -51,7 +53,7 @@ def make_class_operations_list(clinfo):
     text += endItem
     return text
 
-def make_class_attributes_list(clinfo):
+def _make_class_attributes_list(clinfo):
     if not clinfo.cl.attributes:
         return ""
     text = beginItem.format("Attribute")
@@ -64,7 +66,7 @@ def make_class_attributes_list(clinfo):
     text += endItem
     return text
 
-def make_class_child_list(clinfo):
+def _make_class_child_list(clinfo):
     if not clinfo.cl.children:
         return ""
     text = beginItem.format("Erbende Klassen")
@@ -73,7 +75,7 @@ def make_class_child_list(clinfo):
     text += endItem
     return text
 
-def make_class_dependency_list(clinfo):
+def _make_class_dependency_list(clinfo):
     if not clinfo.cl.dependencies:
         return ""
     text = beginItem.format("Abhängigkeiten")
@@ -82,7 +84,7 @@ def make_class_dependency_list(clinfo):
     text += endItem
     return text
 
-def make_class_association_list(clinfo):
+def _make_class_association_list(clinfo):
     if not clinfo.cl.associations:
         return ""
     text = beginItem.format("Assoziationen")
@@ -94,17 +96,27 @@ def make_class_association_list(clinfo):
     return text
 
 class ClassInfo:
+    """Holds information required to format a LaTeX class description.
+
+    Attributes:
+        class_description_template: (static) The template macro parameters and functions
+            used for class description generation.
+        cl: The class to be formatted.
+        elements: The element dictionary of the project, required for references.
+        noref: A set of elements not to create references to (because they would break).
+        image_dir: The directory the class diagrams can be found in.
+    """
 
     class_description_template = [
-        ("%HEADER", make_class_header),
-        ("%DIAGRAM", make_class_single_diagram),
-        ("%DESCRIPTION", make_class_description),
-        ("%TEMPLATE", make_class_template_list),
-        ("%OPERATIONS", make_class_operations_list),
-        ("%ATTRIBUTES", make_class_attributes_list),
-        ("%CHILDREN", make_class_child_list),
-        ("%DEPENDENCIES", make_class_dependency_list),
-        ("%ASSOCIATIONS", make_class_association_list),
+        ("%HEADER", _make_class_header),
+        ("%DIAGRAM", _make_class_single_diagram),
+        ("%DESCRIPTION", _make_class_description),
+        ("%TEMPLATE", _make_class_template_list),
+        ("%OPERATIONS", _make_class_operations_list),
+        ("%ATTRIBUTES", _make_class_attributes_list),
+        ("%CHILDREN", _make_class_child_list),
+        ("%DEPENDENCIES", _make_class_dependency_list),
+        ("%ASSOCIATIONS", _make_class_association_list),
     ]
 
     def __init__(self, cl, elements, noref, image_dir):
@@ -114,6 +126,14 @@ class ClassInfo:
         self.image_dir = image_dir
 
     def ref(self, element_name):
+        """Generate a reference to the given element.
+
+        Returns a LaTeX nameref string if the element can be referenced.
+        Otherwise, it returns the element's name (with the template parameter given in '<>', if applicable)
+
+        Args:
+            element_name: The name of the element to reference.
+        """
         element = self.elements[element_name]
         if element.ty == ElementType.CLASS and element.package != "std" and element.name not in self.noref:
             return "\\nameref{" + element.name + "}"
@@ -126,6 +146,15 @@ class ClassInfo:
                 return "{0}<{1}>".format(match.group(1), match.group(2))
 
 def make_class_descriptions(tex_info):
+    """Generate the descriptions for all the classes listed in the given info.
+
+    Returns a string containing the appropriated LaTeX for the description list.
+    TODO: Extract the hardcoded strings used for this generation into some kind
+    of language file.
+
+    Args:
+        tex_info: The TexInfo to get required information from.
+    """
     text = "\\section{Klassenbeschreibungen}\n\t\\label{Klassenbeschreibungen}\n"
     text += tex_info.override.classes_desc
     for package, classes in tex_info.packages:

@@ -1,5 +1,7 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
+"""Code for generating diagrams containing only a single class."""
+
 import xml.etree.ElementTree as ET
 
 from uml2latex.data import *
@@ -67,7 +69,15 @@ classTemplate = {
         "xmi.id": ""
         }
 
-def make_single_class_diagram(parent, cl, custom_width):
+def make_single_class_diagram(parent, cl, custom_widths):
+    """Place a single class diagram in an XML tree.
+
+    Args:
+        parent: The XML element to create the diagram under.
+        cl: The class to create the diagram for.
+        custom_widths: A dictionary of custom width assignments.
+            If cl is contained in this dict, the custom width is applied.
+    """
     diagAttrs = dict(diagramTemplate)
     diagAttrs["name"] += cl.name
     diagAttrs["xmi.id"] += cl.name
@@ -80,8 +90,8 @@ def make_single_class_diagram(parent, cl, custom_width):
 
     classAttrs = dict(classTemplate)
     classAttrs["height"] = str(cl.approx_height)
-    if cl.name in custom_width:
-        classAttrs["width"] = custom_width[cl.name]
+    if cl.name in custom_widths:
+        classAttrs["width"] = custom_widths[cl.name]
     classAttrs["showattributes"] = "1" if cl.class_type == ClassType.CLASS else "0"
     classAttrs["xmi.id"] = cl.xmiId
     classwidget = ET.SubElement(widgets, tag, classAttrs)
@@ -91,9 +101,16 @@ def make_single_class_diagram(parent, cl, custom_width):
     associations = ET.SubElement(diagram, "associations")
 
 def make_all_single_class_diagrams(tree, elements, custom_widths):
-    # Make a new extension element for the single diagrams
+    """Create single class diagrams for every class in the elements given.
+
+    Args:
+        tree: The Umbrello XML tree to place the diagrams in.
+        elements: The dictionary of elements to retrieve the classes from.
+        custom_widths: A dictionary of custom width assignments.
+            If a class name is a key, the value is used as its diagram's width.
+    """
     ext = ET.SubElement(tree.getroot()[1][0][0][4], "XMI.extension", {"xmi.extender": "umbrello"})
     single_diagram_list = ET.SubElement(ext, "diagrams")
 
-    for cl in {i:el for (i, el) in elements.items() if el.ty == ElementType.CLASS}.values():
+    for cl in [el for el in elements.values() if el.ty == ElementType.CLASS]:
         make_single_class_diagram(single_diagram_list, cl, custom_widths)

@@ -1,5 +1,7 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
+"""Code for parsing information from the Umbrello XML format."""
+
 import xml.etree.ElementTree as ET
 
 from uml2latex.data import *
@@ -8,6 +10,19 @@ from uml2latex.utils import escape
 _umlSchema = "{http://schema.omg.org/spec/UML/1.4}"
 
 class UMLData:
+    """Parses and holds UML data read from XML.
+
+    Do not instantiate this class directly, use the parse_uml function instead.
+    It will return an instance of this class.
+
+    Attributes:
+        tree: The ElementTree read in by etree.
+        packages: A dict of packages and their contents.
+        elements: A dict of element names and their definitions.
+        class_diagram_list: A list of class diagrams found in the XML.
+        sequence_diagram_list: A list of sequence diagrams found in the XML.
+
+    """
 
     tree = None
     packages = {}
@@ -23,6 +38,15 @@ class UMLData:
         self.sequence_diagram_list = sequence_diagram_list
 
     def _get_properties(cl, element_dict):
+        """Get all the operations, attributes, and the template parameter of a class.
+
+        Returns a tuple of a list of operations, a list of attributes,
+        and a template parameter (or None if the class does not have one).
+
+        Args:
+            cl: The class of which to get the properties.
+            element_dict: The dict to add the potential template parameter to.
+        """
         operations = []
         attributes = []
         classifier = cl.find(_umlSchema + "Classifier.feature")
@@ -40,6 +64,14 @@ class UMLData:
         return (operations, attributes, None)
 
     def _approximate_class_height(cl):
+        """Roughly approximate how many vertical pixels are needed to render a diagram of the given class.
+
+        This is necessary because we need to tell Umbrello how large to render each diagram -
+        it doesn't infer that from the elements of the diagram.
+
+        Args:
+            cl: The class to approximate the height of.
+        """
         height = 60
         classifier = cl.find(_umlSchema + "Classifier.feature")
         if classifier is not None:
@@ -49,6 +81,12 @@ class UMLData:
 
 
     def _parse_classes(class_list, package):
+        """Parse all the classes in the list into Class objects and return them in a dict.
+
+        Args:
+            class_list: The list of classes to parse.
+            package: Which package to assign the parsed classes to.
+        """
         element_dict = {}
         for cl in class_list:
             (operations, attributes, template) = UMLData._get_properties(cl, element_dict)
@@ -68,6 +106,17 @@ class UMLData:
 
 
     def parse_uml(file):
+        """Parse an Umbrello XML tree into the UMLData format.
+
+        This is kind of janky, so if something breaks after an Umbrello update involving an XML format change,
+        check here first.
+        This method expects your Umbrello project to have a particular structure (no nested packages or classes,
+        all sequence diagrams in a folder called "Sequenzdiagramme").
+        TODO: Make this method handle other project structures and nested packages gracefully.
+
+        Args:
+            file: The file to read the XML from.
+        """
         ET.register_namespace("UML", _umlSchema[1:-1])
         tree = ET.parse(file)
 
@@ -87,7 +136,7 @@ class UMLData:
 
         # Contains ALL elements (including DataTypes) by xmi.id
         elements = {}
-        # Contains only classes / interfaces / enums by package
+        # Contains a list of classes / interfaces / enums by package
         packages = {}
         for package in package_list:
             package_namespace = package.find(_umlSchema + "Namespace.ownedElement")

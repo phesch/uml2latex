@@ -1,9 +1,30 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
+"""Code for reading in override files from a directory."""
+
 import re
 import glob
 
 class Override:
+    """Reads in override files from a directory and stores the information.
+
+    See the main documentation for details on which overrides are available.
+
+    Attributes:
+        root: A macro string for the root of the generated document.
+        diagram_order: A list of diagrams specifying their order.
+        sequence_diagram_order. A list of sequence diagrams specifying their order.
+        module_list_order: A list of modules specifying their order.
+        noref: A set of element names that no links should be generated to.
+        custom_width: A dict of class names and the width their diagrams should be generated with.
+        architecture_desc: A description to be placed at the start of the architecture section.
+        classes_desc: A description to be placed at the start of the class diagrams section.
+        sequence_desc: A description to be placed at the start of the sequence diagrams section.
+        module_order: A dict of module names and the order their classes should be listed in.
+        module_listing: A dict of modules and macro strings for their sections.
+        diagrams: A dict of diagrams and macro strings for their sections.
+        classes: A dict of classes and macro strings for their sections.
+    """
 
     def __init__(self, directory):
         self.root = ""

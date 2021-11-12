@@ -1,5 +1,7 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
+"""Main entry point for uml2latex. Handles command line parameters."""
+
 import argparse
 import os
 import sys
@@ -42,6 +44,7 @@ def main():
             os.mkdir(args.outImages)
         except:
             pass
+        # Unfortunately, umbrello can't output directly to PDF.
         subprocess.run(["umbrello5", "--directory", args.outImages, "--export", "svg", tmppath],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -54,3 +57,5 @@ def main():
     latex = generate_latex(umlData, args.outImages, override)
     with get_output(args.output) as f:
         f.write(latex)
+
+    return 0
