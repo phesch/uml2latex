@@ -48,7 +48,7 @@ the entire generated document.
 
 ## LaTeX examples
 
-![module listing example](/doc/examples/module_listing_example.png)
+![package listing example](/doc/examples/package_listing_example.png)
 ![class description example](/doc/examples/class_description_example.png)
 
 ## Requirements
@@ -320,14 +320,13 @@ The following macros can be used in this file:
 - `<diagram_name>%DIAGRAM`: Controls the arrangement of the formatting
 for the given class or sequence diagram in the `%SEQUENCES` or `%DIAGRAMS` sections.
 If Umbrello documentation is available for the diagram,
-the following macros can be used in this file:
+the following macros can be used in this file.
+If no Umbrello documentation is available,
+only the `%DIAGRAM` macro can be used in the file.
+The diagram will have its name in the top left and will be assigned a subsection.
   - `%HEADER`: Place the diagram name here in a subsection command.
   - `%DESCRIPTION`: Place the diagram description (extracted from Umbrello) here.
   - `%DIAGRAM`: Place the diagram here.
-If Umbrello documentation isn't available for this diagra,
-the following macros can be used in this file:
-  - `%DIAGRAM`: Place the diagram here.
-  It will have its name in the top left and will be assigned a subsection.
 - `<class_name>%CLASS`: Controls the arrangement of the description of the given class
 in the `%DESCRIPTIONS` class description section.
 The following macros can be used in this file:
