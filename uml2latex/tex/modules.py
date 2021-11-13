@@ -70,7 +70,8 @@ class ModuleInfo:
         self.image_dir = image_dir
 
 def make_module_list(tex_info):
-    text = tex_info.override.architecture_desc
+    text = "\t\\section{Architektur}\n"
+    text += tex_info.override.architecture_desc
     for package, classes in tex_info.packages:
         text += format_template(ModuleInfo.module_template,
                 get(tex_info.override.module_listing, package.attrib["name"]),
