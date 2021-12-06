@@ -151,7 +151,10 @@ class UMLData:
 
         sequence_diagram_list_root = next(filter(lambda x: x.attrib["name"] == "Sequenzdiagramme",
             namespace_root.findall(_umlSchema + "Package"))).find("XMI.extension")
-        sequence_diagram_list = list(sequence_diagram_list_root[0].findall("diagram"))
+        if not sequence_diagram_list_root:
+            sequence_diagram_list = []
+        else:
+            sequence_diagram_list = list(sequence_diagram_list_root[0].findall("diagram"))
 
         # Contains ALL elements (including DataTypes) by xmi.id
         elements = {}
