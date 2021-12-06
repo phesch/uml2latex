@@ -137,7 +137,9 @@ class UMLData:
         ET.register_namespace("UML", _umlSchema[1:-1])
         tree = ET.parse(file)
 
-        model_view = tree.getroot()[1][0][0][3]
+        model_view = [el for el in tree.getroot()
+            .find("./XMI.content/{0}Model/{0}Namespace.ownedElement".format(_umlSchema))
+            .findall(_umlSchema + "Model") if el.attrib["xmi.id"] == "Logical_View"][0]
         namespace_root = model_view.find(_umlSchema + "Namespace.ownedElement")
 
         package_list = list(filter(lambda x: "stereotype" not in x.attrib or x.attrib["name"] != "Datatypes",
@@ -165,7 +167,8 @@ class UMLData:
             packages[package] = list(filter(lambda x: x.ty == ElementType.CLASS,
                 class_dict.values()))
 
-        for datatype in namespace_root[0][0].findall(_umlSchema + "DataType"):
+        for datatype in namespace_root.find("./{0}Package/{0}Namespace.ownedElement".format(_umlSchema))\
+                .findall(_umlSchema + "DataType"):
             elements[datatype.attrib["xmi.id"]] = DataType(
                     escape(datatype.attrib["name"]),
                     datatype.attrib["xmi.id"],
