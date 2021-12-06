@@ -172,6 +172,8 @@ def make_class_descriptions(tex_info):
     Args:
         tex_info: The TexInfo to get required information from.
     """
+    if not tex_info.packages:
+        return ""
     text = "\\section{Klassenbeschreibungen}\n\t\\label{Klassenbeschreibungen}\n"
     text += tex_info.override.classes_desc
     for package, classes in tex_info.packages:

@@ -29,6 +29,8 @@ def _make_module_description(modinfo):
     return "\t\t{0}\n".format(attrdoc(modinfo.module.attrib, "comment", modinfo.module.attrib["name"]))
 
 def _make_module_classlist(modinfo):
+    if not modinfo.classes:
+        return ""
     text = "\t\t\\subsubsection*{Klassen}\n"
     text += beginMultiColItem
     for cl in modinfo.classes:
